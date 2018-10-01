@@ -10,6 +10,15 @@
 # tolabs and tolrel are two tolerance criteria in ADMM
 # model: model can be year or age. If year is specified, clustering is for year
 
+dat <- read.csv("Rfiles/CBD-O/FullObeseYear.csv")
+year <- dat$IYEAR
+age <- dat$AGE
+y <- dat$PropObese
+x <- cbind(1, scale(dat$AGE), scale(dat$AGE^2))
+nu <- 1
+gam <- 3
+ 
+
 Gr_cohort <- function(year, age, y, x, betam0, model = "year",
                       lam = 0.5, nu = 1, gam = 3, lam = 0.5,
                       maxiter = 1000, tolabs = 1e-4, tolrel = 1e-2)
@@ -69,7 +78,7 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year",
     nJ[i] <- ni
     Xm[indexi, (ncx*(i-1) + 1) : (ncx*i)] <- x[indexy == uniq_index[i],]/sqrt(ni)
     ym[indexi] <- y[indexi]/sqrt(ni)
-    Zcm[index,] <- Zc[index,]/sqrt(ni)
+    Zcm[indexi,] <- Zc[indexi,]/sqrt(ni)
   }
   
   
@@ -109,3 +118,5 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year",
   
   
 }
+
+
