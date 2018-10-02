@@ -1,9 +1,10 @@
-####### Obesity data ####
+####### Find some subgroups for obesity data by Xin Wang####
 
 # y is the proportion
 # age is the age 
 # x is the covariate, which are based on ages
 # year is "year" 
+# weights: weight for each pair
 # betam0: initial value
 # lam: tuning parameter
 # maxiter: maximum number of iterations
@@ -17,16 +18,21 @@ y <- dat$PropObese
 x <- cbind(1, scale(dat$AGE), scale(dat$AGE^2))
 nu <- 1
 gam <- 3
- 
 
-Gr_cohort <- function(year, age, y, x, betam0, model = "year",
+group <- rep(1:2,c(12,13))
+
+temp <- refit_cohort(year = year,age = age,x = x,group = group)
+Xm <- temp$Xm
+
+
+Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
                       lam = 0.5, nu = 1, gam = 3, lam = 0.5,
                       maxiter = 1000, tolabs = 1e-4, tolrel = 1e-2)
 {
   n0 <- length(y) # number of total observation
   ncx <- ncol(x)
   
-  uniq_year <- unique(year)
+  uniq_year <- unique(year) # unique index sort increasingly 
   uniq_age <- unique(age)
   
   nyear <- length(uniq_year)
@@ -39,9 +45,11 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year",
   
   if(model == "year")
   {
-    nobs <- nyear
+    nobs <- nyear ## number of individuals
+    nrep <- nage # number of observations for each indiviual
     indexy <- year
     uniq_index <- uniq_year
+    
   }
   
   D <- matrix(0,nobs*(nobs-1)/2,nobs)  # ei - ej
@@ -66,19 +74,16 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year",
   
   
   
-  #### transformation 
+  #### transformation, reoder the data based on uniq_index
   Xm <- matrix(0, n0, nobs*ncx)
   Zcm <- Zc
   ym <- rep(0, n0)
-  nJ <- rep(0, nobs)
   for(i in 1:nobs)
   {
     indexi <- indexy == uniq_index[i]
-    ni <- sum(indexy == uniq_index[i])
-    nJ[i] <- ni
-    Xm[indexi, (ncx*(i-1) + 1) : (ncx*i)] <- x[indexy == uniq_index[i],]/sqrt(ni)
-    ym[indexi] <- y[indexi]/sqrt(ni)
-    Zcm[indexi,] <- Zc[indexi,]/sqrt(ni)
+    Xm[indexi, (ncx*(i-1) + 1) : (ncx*i)] <- x[indexy == uniq_index[i],]/sqrt(nrep)
+    ym[indexi] <- y[indexi]/sqrt(nrep)
+    Zcm[indexi,] <- Zc[indexi,]/sqrt(nrep)
   }
   
   
