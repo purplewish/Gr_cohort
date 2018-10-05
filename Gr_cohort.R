@@ -1,5 +1,35 @@
 ####### Find some subgroups for obesity data by Xin Wang####
 
+######################### scad penalty ###################
+sfun <- function(x, th)
+{
+  xn <- sqrt(sum(x^2))
+  thval <- 1 - th/xn
+  thval*((thval) >0)*x
+}
+
+scad <- function(x,lam,nu,gam)
+{
+  temp1 <- lam/nu
+  temp2 <- gam * lam
+  xn <- sqrt(sum(x^2))
+  
+  if(xn <= lam + temp1)
+  {
+    z <- sfun(x, temp1)
+  }else if(xn <= temp2 & xn >= lam + temp1)
+  {
+    z <- sfun(x, temp2/((gam-1)*nu))/(1- 1/((gam - 1 )*nu))
+  }else{
+    z <- x
+  }
+  
+  return(z)
+  
+}
+###########################################################
+
+
 # y is the proportion
 # age is the age 
 # x is the covariate, which are based on ages
@@ -11,18 +41,20 @@
 # tolabs and tolrel are two tolerance criteria in ADMM
 # model: model can be year or age. If year is specified, clustering is for year
 
-dat <- read.csv("Rfiles/CBD-O/FullObeseYear.csv")
+
+library(Spgr)
+
+dat <- read.csv("Dropbox/Tanja&XinW/Rfiles/CBD-O/FullObeseYear.csv")
 year <- dat$IYEAR
+nyear <- length(unique(year))
 age <- dat$AGE
 y <- dat$PropObese
 x <- cbind(1, scale(dat$AGE), scale(dat$AGE^2))
 nu <- 1
 gam <- 3
+weights <- rep(1, nyear*(nyear-1))
+betam0 <- cal_initialrx(indexy = dat$IYEAR,y = y,x = x)
 
-group <- rep(1:2,c(12,13))
-
-temp <- refit_cohort(year = year,age = age,x = x,group = group)
-Xm <- temp$Xm
 
 
 Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
@@ -52,7 +84,9 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
     
   }
   
-  D <- matrix(0,nobs*(nobs-1)/2,nobs)  # ei - ej
+  npair <- nobs*(nobs - 1)/2
+  
+  D <- matrix(0,npair,nobs)  # ei - ej
   for(j in 1:(nobs-1))
   {
     indexj <- (nobs-1 + nobs-j+1)*(j-1)/2
@@ -67,10 +101,10 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
   Zc <- matrix(0, n0, ncoh) # cohort matrix
   Zc[cbind(1:n0, cohort)] <- 1
   
-  Hm <- matrix(0, 3, ncoh) # constraints matrix
+  Hm <- matrix(0, 1, ncoh) # constraints matrix
   Hm[1,] <- rep(1,ncoh)
-  Hm[2,]<-  1:ncoh
-  Hm[3,] <- (1:ncoh)^2
+  # Hm[2,]<-  1:ncoh
+  # Hm[3,] <- (1:ncoh)^2
   
   
   
@@ -100,28 +134,61 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
   deltam.old <- t(D %*% betam0)
   betam <- betam0
   betanew <- c(t(betam))
-  eta <- rep(0,ncoh)
+  etanew <- rep(0,ncoh)
   
   vm  <-  matrix(0, ncx, nobs*(nobs-1)/2)
-  vh <- rep(0, 3)
+  vh <- 0 
   
   flag <- 0
   
   for(m in 1:maxiter)
   {
-    betanew <- reg_b1 - XtX_inv %*% XtZ %*% eta + nu* XtX_inv %*% c((deltam.old -  vm/nu) %*% D)
+    betanew <- reg_b1 - XtX_inv %*% XtZ %*% etanew + nu* XtX_inv %*% c((deltam.old -  vm/nu) %*% D)
     etanew <- reg_eta1 - ZtZ_inv %*% ZtX %*% betanew - t(Hm) %*% vh
     
+    
+    betam <- matrix(betanew, nobs, ncx, byrow = TRUE)
     betadiff <- t(D %*% betam)
     psim <- betadiff + vm/nu
-    deltam <- sapply(1:ncol(psim),function(xx) scad(psim[,xx],cvec[xx]*lam,nu,gam))
-    vm <- vm + nu * (betadiff - deltam)
-    vh <- vh + nu * Hm %*% etanew 
+    deltam <- sapply(1:ncol(psim),function(xx) scad(psim[,xx],weights[xx]*lam,nu,gam))
+    
+    Heta <- Hm %*% etanew
+    Abd <- betadiff - deltam
+    
+    vm <- vm + nu * Abd
+    vh <- vh + nu * Heta
+    
+   
+    rm <- sqrt(sum(Abd^2) + Heta^2)
+    sm <- nu*sqrt(sum(((deltam - deltam.old)%*%D)^2))
+    
+    tolpri <- tolabs*sqrt(npair*ncx + 1) + tolrel*max(sqrt(sum(betadiff^2) + Heta^2),sqrt(sum(deltam^2)))
+    toldual <- tolabs*sqrt(nobs*ncx + nc) + tolrel* sqrt(sum((vm %*% D)^2) + vh^2*ncoh)
+    
+    deltam.old <- deltam
+    if(rm <= tolpri & sm <= toldual){break}
   }
   
   
+  if(m == maxiter) {flag <- 1}
+  
+  groupest <- getgroup(deltam = deltam,n = nobs) 
+  # getgroup is a function Spgr to find the group information based on estimated delta
+  ngest <- length(unique(groupest))
+  
+  if(ncx ==1){
+    alpest <-  matrix(by(betam, groupest, colMeans,simplify = TRUE), nrow= 1)
+  }else{  alpest <- do.call("cbind",by(betam, groupest, colMeans,simplify = TRUE))}
   
   
+  BICvalue <-  log(sum(ym - Xm %*% betanew - Zcm %*% etanew)^2/nobs) + log(nobs)/nobs*(ngest * ncx)
+  
+  outls <- list(betaest = betaest, etaest = etanew, betam = betam,
+                group = groupest, deltam = deltam,  BIC = BICvalue,
+                rm = rm, sm = sm, tolpri = tolpri, toldual = toldual,
+                flag = flag, niteration = m)
+  
+  return(outls)
 }
 
 
