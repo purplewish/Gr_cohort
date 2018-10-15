@@ -1,5 +1,7 @@
 ####### Find some subgroups for obesity data by Xin Wang####
 
+library(Spgr)
+
 ######################### scad penalty ###################
 sfun <- function(x, th)
 {
@@ -8,6 +10,7 @@ sfun <- function(x, th)
   thval*((thval) >0)*x
 }
 
+# the solution of the scad penalty 
 scad <- function(x,lam,nu,gam)
 {
   temp1 <- lam/nu
@@ -41,40 +44,24 @@ scad <- function(x,lam,nu,gam)
 # tolabs and tolrel are two tolerance criteria in ADMM
 # model: model can be year or age. If year is specified, clustering is for year
 
-
-library(Spgr)
-
-dat <- read.csv("Dropbox/Tanja&XinW/Rfiles/CBD-O/FullObeseYear.csv")
-year <- dat$IYEAR
-nyear <- length(unique(year))
-age <- dat$AGE
-y <- dat$PropObese
-x <- cbind(1, scale(dat$AGE), scale(dat$AGE^2))
-nu <- 1
-gam <- 3
-weights <- rep(1, nyear*(nyear-1))
-betam0 <- cal_initialrx(indexy = dat$IYEAR,y = y,x = x)
-
+# the data year and age should sort increasingly.
 
 
 Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
-                      lam = 0.5, nu = 1, gam = 3, lam = 0.5,
+                      lam = 0.5, nu = 1, gam = 3, 
                       maxiter = 1000, tolabs = 1e-4, tolrel = 1e-2)
 {
   n0 <- length(y) # number of total observation
-  ncx <- ncol(x)
+  ncx <- ncol(x) # dimension of x
   
   uniq_year <- unique(year) # unique index sort increasingly 
-  uniq_age <- unique(age)
+  uniq_age <- unique(age) # unique age sort increasingly 
   
   nyear <- length(uniq_year)
   nage <- length(uniq_age)
   ncoh <- nyear + nage - 1 # number of cohort effects
   
-  cohort <- as.integer(factor(year - age))
-  
-  Ip <- diag(1,ncx,ncx)
-  
+  # cluster year curves
   if(model == "year")
   {
     nobs <- nyear ## number of individuals
@@ -83,6 +70,17 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
     uniq_index <- uniq_year
     
   }
+  
+  # cluster age curves 
+  if(model == "age")
+  {
+    nobs <- nage
+    nrep <- nyear
+    index < age
+    uniq_index <- uniq_age
+  }
+  
+  Ip <- diag(1,ncx,ncx)
   
   npair <- nobs*(nobs - 1)/2
   
@@ -97,18 +95,18 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
   
   AtA <- t(D)%*%D %x% Ip
   
-  
+  cohort <- as.integer(factor(year - age)) # cohort effect 
   Zc <- matrix(0, n0, ncoh) # cohort matrix
   Zc[cbind(1:n0, cohort)] <- 1
   
   Hm <- matrix(0, 1, ncoh) # constraints matrix
   Hm[1,] <- rep(1,ncoh)
-  # Hm[2,]<-  1:ncoh
-  # Hm[3,] <- (1:ncoh)^2
+  #Hm[2,]<-  1:ncoh
+  #Hm[3,] <- (1:ncoh)^2
   
   
   
-  #### transformation, reoder the data based on uniq_index
+  #### transformation including W matrix 
   Xm <- matrix(0, n0, nobs*ncx)
   Zcm <- Zc
   ym <- rep(0, n0)
@@ -130,42 +128,48 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
   
   reg_b1 <- XtX_inv %*% Xty
   reg_eta1 <- ZtZ_inv %*% Zty
+  
+  
   ##### some initials ####
   deltam.old <- t(D %*% betam0)
   betam <- betam0
-  betanew <- c(t(betam))
+  betanew <- c(t(betam)) # vector form 
   etanew <- rep(0,ncoh)
   
   vm  <-  matrix(0, ncx, nobs*(nobs-1)/2)
-  vh <- 0 
+  vh <-  0 
   
   flag <- 0
   
   for(m in 1:maxiter)
   {
+    # update beta and eta 
     betanew <- reg_b1 - XtX_inv %*% XtZ %*% etanew + nu* XtX_inv %*% c((deltam.old -  vm/nu) %*% D)
-    etanew <- reg_eta1 - ZtZ_inv %*% ZtX %*% betanew - t(Hm) %*% vh
+    etanew <- reg_eta1 - ZtZ_inv %*% ZtX %*% betanew - ZtZ_inv %*%t(Hm) %*% vh
     
-    
-    betam <- matrix(betanew, nobs, ncx, byrow = TRUE)
+    betam <- matrix(betanew, nobs, ncx, byrow = TRUE) # matrix 
     betadiff <- t(D %*% betam)
     psim <- betadiff + vm/nu
+    
+    # update delta 
     deltam <- sapply(1:ncol(psim),function(xx) scad(psim[,xx],weights[xx]*lam,nu,gam))
     
-    Heta <- Hm %*% etanew
+    # update v
     Abd <- betadiff - deltam
+    Heta <- Hm %*% etanew
     
     vm <- vm + nu * Abd
     vh <- vh + nu * Heta
     
-   
+   # convergence
     rm <- sqrt(sum(Abd^2) + Heta^2)
     sm <- nu*sqrt(sum(((deltam - deltam.old)%*%D)^2))
     
     tolpri <- tolabs*sqrt(npair*ncx + 1) + tolrel*max(sqrt(sum(betadiff^2) + Heta^2),sqrt(sum(deltam^2)))
-    toldual <- tolabs*sqrt(nobs*ncx + nc) + tolrel* sqrt(sum((vm %*% D)^2) + vh^2*ncoh)
+    toldual <- tolabs*sqrt(nobs*ncx + ncoh) + tolrel* sqrt(sum((vm %*% D)^2) + vh^2*ncoh)
     
     deltam.old <- deltam
+    
     if(rm <= tolpri & sm <= toldual){break}
   }
   
@@ -176,14 +180,16 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
   # getgroup is a function Spgr to find the group information based on estimated delta
   ngest <- length(unique(groupest))
   
+  # group coefficients
   if(ncx ==1){
     alpest <-  matrix(by(betam, groupest, colMeans,simplify = TRUE), nrow= 1)
-  }else{  alpest <- do.call("cbind",by(betam, groupest, colMeans,simplify = TRUE))}
+  }else{  alpest <- do.call("rbind",by(betam, groupest, colMeans,simplify = TRUE))}
   
+  betaest <- alpest[groupest,]
   
   BICvalue <-  log(sum(ym - Xm %*% betanew - Zcm %*% etanew)^2/nobs) + log(nobs)/nobs*(ngest * ncx)
   
-  outls <- list(betaest = betaest, etaest = etanew, betam = betam,
+  outls <- list(betaest = betaest, etaest = etanew, betam = betam, alpest = alpest,
                 group = groupest, deltam = deltam,  BIC = BICvalue,
                 rm = rm, sm = sm, tolpri = tolpri, toldual = toldual,
                 flag = flag, niteration = m)
