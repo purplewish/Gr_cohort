@@ -76,7 +76,7 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
   {
     nobs <- nage
     nrep <- nyear
-    index < age
+    indexy <- age
     uniq_index <- uniq_age
   }
   

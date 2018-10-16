@@ -68,19 +68,22 @@ refit_cohort <- function(year, age, x, group, model = "year")
   U1[1:ncu, 1:ncu] <- t(Ux)%*%Ux
   
   U1[ncu + 1, 1:ncu] <- H1
-  U1[1:ncu, ncu] <- t(H1)
-  thetaest <- (solve(U1)%*%c(y,0))[1:ncu]
+  U1[1:ncu, ncu+1] <- t(H1)
+  thetaest <- (solve(U1)%*%c(t(Ux)%*%y,0))[1:ncu]
   
-  U_inv <- solve(t(Ux)%*%Ux + t(H1)%*%H1)
-  thetaest <- (U_inv - U_inv%*%t(H1)%*% solve(H1%*%U_inv%*%t(H1))%*%H1%*%U_inv)%*%t(Ux)%*%y # solution 
+  # U_inv <- solve(t(Ux)%*%Ux + t(H1)%*%H1)
+  # thetaest <- (U_inv - U_inv%*%t(H1)%*% solve(H1%*%U_inv%*%t(H1))%*%H1%*%U_inv)%*%t(Ux)%*%y # solution 
 
   
   betaest <- matrix(thetaest[1:(ng*ncx)],ncol = ncx, byrow=TRUE)
   etaest <- thetaest[-(1:(ng*ncx))]
 
   sig2 <- sum((ym - Ux%*%thetaest)^2)/nobs
+  
+  estimates <- Ux %*% thetaest
+  
 
-  out <- list(betaest = betaest, etaest = etaest, sig2 = sig2)
+  out <- list(betaest = betaest, etaest = etaest, estimates = estimates, sig2 = sig2)
   return(out)
 }
 
