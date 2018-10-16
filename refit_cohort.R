@@ -59,13 +59,19 @@ refit_cohort <- function(year, age, x, group, model = "year")
   W[cbind(1:nobs,group)] <- 1
   W <- W %x% diag(1,ncx)
   Ux <- cbind(Xm%*%W, Zc) ## new X with group information
-  H1 <- matrix(0, nrow = 1, ncol = ncol(Ux)) # constraint including beta 
-  H1[,(ng*ncx+1):ncol(Ux)] <- rnorm(103-3*6)
+
+  ncu <- ncol(Ux)
+  H1 <- matrix(0, nrow = 1, ncol = ncu) # constraint including beta 
+  H1[,(ng*ncx+1):ncu] <- 1
+  
+  U1 <- matrix(0, ncu + 1,  ncol = ncu + 1) # linear model with constraint
+  U1[1:ncu, 1:ncu] <- t(Ux)%*%Ux
+  
+  U1[ncu + 1, 1:ncu] <- H1
+  U1[1:ncu, ncu] <- t(H1)
+  thetaest <- (solve(U1)%*%c(y,0))[1:ncu]
   
   U_inv <- solve(t(Ux)%*%Ux + t(H1)%*%H1)
-  
-  fit1 <- lm(c(y,0)~ 0+  rbind(Ux,H1))
-  
   thetaest <- (U_inv - U_inv%*%t(H1)%*% solve(H1%*%U_inv%*%t(H1))%*%H1%*%U_inv)%*%t(Ux)%*%y # solution 
 
   
