@@ -187,10 +187,15 @@ Gr_cohort <- function(year, age, y, x, betam0, model = "year", weights,
   
   betaest <- alpest[groupest,]
   
-  BICvalue <-  log(sum(ym - Xm %*% betanew - Zcm %*% etanew)^2/nobs) + log(nobs)/nobs*(ngest * ncx)
+  betac <- c(t(betaest))
+  BICvalue <-  log(sum(ym - Xm %*% betac - Zcm %*% etanew)^2/nobs) + log(nobs)/nobs*(ngest * ncx)
+  
+  BICc <- log(sum(ym - Xm %*% betac - Zcm %*% etanew)^2/nobs) + log(log(nobs*ncx))*log(nobs)/nobs*(ngest * ncx)
+  
+  resi <- log(sum(ym - Xm %*% betac- Zcm %*% etanew)^2/nobs)
   
   outls <- list(betaest = betaest, etaest = etanew, betam = betam, alpest = alpest,
-                group = groupest, deltam = deltam,  BIC = BICvalue,
+                group = groupest, deltam = deltam,  BIC = BICvalue, BICc = BICc,resi = resi,
                 rm = rm, sm = sm, tolpri = tolpri, toldual = toldual,
                 flag = flag, niteration = m)
   
