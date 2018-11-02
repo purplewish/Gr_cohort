@@ -65,7 +65,7 @@ sigmax <- sum((uage - mean(uage))^2)/length(uage)
 x0 <- cbind(1, xm, xm^2 - sigmax)
 res_year <- refit_cohort(year = year,age = age, y = dat$PropObese,  x = x0,group = groupmat[,29],model = "year") # refit with estimated group structure. 
 
-res_year2 <- refit_cohort2(year = year,age = age, y = dat$PropObese,  x = x0,group.individual = groupmat[,29], group.cohort =  rep(1:46,each = 2),model = "year") 
+res_year2 <- refit_cohort2(year = year,age = age, y = dat$PropObese,x = x0,group.individual = groupmat[,29], group.cohort = c(rep(1:42,each = 2),43),model = "year") 
 
 res_gr_year <- refit_group(year = year, age = age, y = dat$PropObese, x = x0,group = groupmat[,29],model="year") ## fit linear model without cohort 
 
@@ -79,8 +79,8 @@ preddat$curve_gr <- res_gr_year$estimates
 
 ggplot(data = preddat) + 
   geom_point(aes(x = AGE, y = PropObese, group = group, color = group)) + 
-  #geom_line(aes(x = AGE, y = curve, group = group, color = group)) +
-  geom_line(aes(x = AGE, y = curve_gr, group = group, color = group)) +
+  geom_line(aes(x = AGE, y = curve, group = group, color = group)) +
+ # geom_line(aes(x = AGE, y = curve_gr, group = group, color = group)) +
   theme_bw() 
 
 
