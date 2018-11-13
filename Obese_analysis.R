@@ -167,7 +167,7 @@ ggplot(data = preddat2) +
 
 
 
-#### find groups for ages  need to discuss #####
+#### nonparametric  find groups for ages  need to discuss  #####
 
 library(splines)
 year2 <- dat2$IYEAR
