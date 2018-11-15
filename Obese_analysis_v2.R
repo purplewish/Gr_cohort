@@ -2,6 +2,7 @@
 
 library(Spgr)
 library(plyr)
+library(dplyr)
 library(ggplot2)
 setwd("Research/Obesity/")
 source("Gr_cohort/Gr_cohort.R")
@@ -27,6 +28,8 @@ nyear <- length(unique(year))
 age <- dat$AGE
 uage <- unique(dat$AGE)
 uyear <- unique(dat$IYEAR)
+
+ncoh <- nyear + length(unique(age)) - 1
 
 x <- cbind(1, scale(dat$AGE), scale(dat$AGE^2))
 nu <- 1
@@ -97,13 +100,13 @@ res_c1 <- refit_cohort2(year = year, age = age,y = dat$PropObese, x = x0,group.i
 ####### for age ######
 ### weights are considered 
 
-dat2 <- arrange(dat, AGE, year)
+dat2 <- arrange(dat, AGE, IYEAR)
 year2 <- dat2$IYEAR
 age2 <- dat2$AGE
 nage2 <- length(unique(age2))
 y2 <- dat2$PropObese 
 x2 <- cbind(1, scale(dat2$IYEAR),scale(dat2$IYEAR^2))
-
+ncoh <- nage2 + length(unique(year2)) - 1
 
 # weights for age is defined based on the age difference 
 wmat <- matrix(0, nage2, nage2)
@@ -122,54 +125,52 @@ alp <- c(0.25,0.5,0.75,1,1.25,1.5)
 
 bic2 <- rep(0, length(lam2))
 beta_array2 <- array(0, dim = c(nage2,3,length(lam2)))
-groupmat2 <- matrix(0, nyear, length(lam2))
-
-
-
-
-
-etamat1 <- groupeta1 <- matrix(0, ncoh, length(lam2))
+groupmat2 <- matrix(0, nage2, length(lam2))
+etamat2 <- groupeta2 <- matrix(0, ncoh, length(lam2))
 
 
 for(j2 in 1:length(lam2))
 {
-  betam1 <- betam01
+ 
+  bicj2 <- rep(0, length(alp))
   
-  bic1j <- rep(0, length(lam1))
-  beta_arrayj <- array(0, dim = c(nyear,ncol(x),length(lam1)))
-  groupmatj <- matrix(0, nyear, length(lam1))
+  beta_arrayj2 <- array(0, dim = c(nage2,ncol(x2),length(alp)))
+  groupmatj2 <- matrix(0, nage2, length(alp))
   
-  etamatj <- matrix(0, ncoh, length(lam1))
-  groupetaj  <- matrix(0, ncoh, length(lam1))
+  etamatj2 <- matrix(0, ncoh, length(alp))
+  groupetaj2  <- matrix(0, ncoh, length(alp))
   
-
-  bic2 <- rep(0, length(alp))
-  bicc2 <- rep(0, length(alp))
-  beta_array2 <- array(0, dim = c(nage2,ncol(x2),length(alp)))
-  groupmat2 <- matrix(0, nage2, length(alp))
-  groupmatc2 <- matrix(0, nage2, length(alp))
-  ngroup2 <- rep(0, length(alp))
+  
   
   for(k in 1:length(alp))
   {
     betam2 <- betam02
-    bic2k <- rep(0, length(lam2))
-    bicc2k <- rep(0, length(lam2))
-    resik <- rep(0, length(lam2))
-    beta_array2k <- array(0, dim = c(nage2,ncol(x2),length(lam2)))
-    groupmat2k <- matrix(0, nage2, length(lam2))
+    
+    bic2k <- rep(0, length(lam1))
+    
+    beta_arrayk2 <- array(0, dim = c(nage2,ncol(x2),length(lam1)))
+    groupmatk2 <- matrix(0, nage2, length(lam1))
+    
+    etamatk2 <- matrix(0, ncoh, length(lam1))
+    groupetak2  <- matrix(0, ncoh, length(lam1))
+    
+    
     weightsk <- exp(alp[k]*(1-ordervec))
     
-    for(j in 1:length(lam2))
+    for(j1 in 1:length(lam1))
     {
-      resj <- Gr_cohort(year = year2,age = age2,y = y2,x = x2,betam0 = betam2,model = "age",
-                        weights = weightsk,lam = lam2[j])
+      resj <- Gr_cohort2(year = year2,age = age2,y = dat$PropObese,x = x2,
+                         betam0 = betam2,model = "age",weights = weightsk,
+                         lam1 = lam1[j1],lam2 = lam2[j2])
+      
+      
       betam2 <- resj$betaest
-      bic2k[j] <- resj$BIC
-      bicc2k[j] <- resj$BICc
-      resik[j] <- resj$resi
-      beta_array2k[,,j] <- resj$betaest
-      groupmat2k[,j] <- resj$group
+      
+      bic2k[j1] <- resj$BIC2
+      beta_arrayk2[,,j1] <- resj$betaest
+      groupmat2k[,j1] <- resj$group
+      etamatk2[,j1] <- resj$etaest
+      groupetak2[,j1] <- resj$groupc
     }
     
     indexmin <- which.min(bic2k)
@@ -182,8 +183,8 @@ for(j2 in 1:length(lam2))
   
   
   
-  indj <- which.min(bic1j)
-  bic1[j2] <- bic1j[indj]
+  indj <- which.min(bic2j)
+  bic2[j2] <- bic2j[indj]
   
   beta_array1[,,j2] <- beta_arrayj[,,indj]
   groupmat1[,j2] <- groupmatj[,indj]
