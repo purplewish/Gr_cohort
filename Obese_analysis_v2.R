@@ -119,43 +119,39 @@ ordervec <- wmat[lower.tri(wmat)]
 betam02 <- cal_initialrx(indexy = age2,y = y2,x = x2) # from Spgr package 
 
 
-lam1 <- seq(0.05,0.2,by = 0.0025)
-lam2 <- seq(0.001,0.004,by = 0.0005)
+lam1 <- seq(0.005,0.05,by = 0.0025)
+lam2 <- seq(0.001,0.001,by = 0.001)
 alp <- c(0.25,0.5,0.75,1,1.25,1.5)
 
-bic2 <- rep(0, length(lam2))
-beta_array2 <- array(0, dim = c(nage2,3,length(lam2)))
-groupmat2 <- matrix(0, nage2, length(lam2))
-etamat2 <- groupeta2 <- matrix(0, ncoh, length(lam2))
+bic2 <- rep(0, length(alp))
+beta_array2 <- array(0, dim = c(nage2,3,length(alp)))
+groupmat2 <- matrix(0, nage2, length(alp))
+etamat2 <- groupeta2 <- matrix(0, ncoh, length(alp))
 
 
-for(j2 in 1:length(lam2))
+for(k in 1:length(alp))
 {
+  weightsk <- exp(alp[k]*(1-ordervec))
  
-  bicj2 <- rep(0, length(alp))
+  bick2 <- rep(0, length(lam2))
   
-  beta_arrayj2 <- array(0, dim = c(nage2,ncol(x2),length(alp)))
-  groupmatj2 <- matrix(0, nage2, length(alp))
+  beta_arrayk2 <- array(0, dim = c(nage2,ncol(x2),length(lam2)))
+  groupmatk2 <- matrix(0, nage2, length(lam2))
   
-  etamatj2 <- matrix(0, ncoh, length(alp))
-  groupetaj2  <- matrix(0, ncoh, length(alp))
+  etamatk2 <- matrix(0, ncoh, length(lam2))
+  groupetak2  <- matrix(0, ncoh, length(lam2))
   
-  
-  
-  for(k in 1:length(alp))
+  for(j2 in 1:length(lam2))
   {
     betam2 <- betam02
     
-    bic2k <- rep(0, length(lam1))
+    bic2j <- rep(0, length(lam1))
     
-    beta_arrayk2 <- array(0, dim = c(nage2,ncol(x2),length(lam1)))
-    groupmatk2 <- matrix(0, nage2, length(lam1))
+    beta_arrayj2 <- array(0, dim = c(nage2,ncol(x2),length(lam1)))
+    groupmatj2 <- matrix(0, nage2, length(lam1))
     
-    etamatk2 <- matrix(0, ncoh, length(lam1))
-    groupetak2  <- matrix(0, ncoh, length(lam1))
-    
-    
-    weightsk <- exp(alp[k]*(1-ordervec))
+    etamatj2 <- matrix(0, ncoh, length(lam1))
+    groupetaj2  <- matrix(0, ncoh, length(lam1))
     
     for(j1 in 1:length(lam1))
     {
@@ -163,33 +159,42 @@ for(j2 in 1:length(lam2))
                          betam0 = betam2,model = "age",weights = weightsk,
                          lam1 = lam1[j1],lam2 = lam2[j2])
       
+     # resj <- Gr_cohort2(year = year2,age = age2,y = dat$PropObese,x = x2,
+      #                   betam0 = betam2,model = "age",weights = weightsk,
+      #                   lam1 = lam1[j1],lam2 = lam2[])
+      
       
       betam2 <- resj$betaest
       
-      bic2k[j1] <- resj$BIC2
-      beta_arrayk2[,,j1] <- resj$betaest
-      groupmat2k[,j1] <- resj$group
-      etamatk2[,j1] <- resj$etaest
-      groupetak2[,j1] <- resj$groupc
+      bic2j[j1] <- resj$BIC2
+      beta_arrayj2[,,j1] <- resj$betaest
+      groupmatj2[,j1] <- resj$group
+      etamatj2[,j1] <- resj$etaest
+      groupetaj2[,j1] <- resj$groupc
     }
     
-    indexmin <- which.min(bic2k)
-    bic2[k] <- bic2k[indexmin]
-    bicc2[k] <- bicc2k[which.min(bicc2k)]
-    beta_array2[,,k] <- beta_array2k[,,indexmin]
-    groupmat2[,k] <- groupmat2k[,indexmin]
-    groupmatc2[,k] <- groupmat2k[,which.min(bicc2k)]
+    indexmin <- which.min(bic2j)
+    
+    bick2[j2] <- bic2k[indexmin]
+    
+    beta_arrayk2[,,j2] <- beta_arrayj2[,,indexmin]
+    groupmatk2[,j2] <- groupmatj2[,indexmin]
+    
+    etamatk2[,j2] <- etamatj2[,indexmin]
+    groupetak2[,j2]  <- groupetaj2[,indexmin]
   }
   
+
+  indj <- which.min(bick2)
+  bic2[k] <- bick2[indj]
   
-  
-  indj <- which.min(bic2j)
-  bic2[j2] <- bic2j[indj]
-  
-  beta_array1[,,j2] <- beta_arrayj[,,indj]
-  groupmat1[,j2] <- groupmatj[,indj]
-  etamat1[,j2] <- etamatj[,indj]
-  groupeta1[,j2] <- groupetaj[,j2]
+  beta_array2[,,k] <- beta_arrayk2[,,indj]
+  groupmat2[,k] <- groupmatk2[,indj]
+  etamat2[,k] <- etamatk2[,indj]
+  groupeta2[,k] <- groupetak2[,indj]
   
   print(j2)
 }
+
+
+res_c2 <-  refit_cohort2(year = year2, age = age2,y = dat$PropObese, x = x2,group.individual = groupmat2[,5],group.cohort = groupeta2[,5],model = "age")
