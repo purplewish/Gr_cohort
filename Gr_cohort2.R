@@ -155,9 +155,6 @@ Gr_cohort2 <- function(year, age, y, x, betam0, model = "year", weights,
   
   deltam.old <- t(D %*% betam)
   alpm.old <-  Dc%*% etanew
- 
-  
-  etanew <- rep(0,ncoh) # initial of cohort effect 
   
   vm  <-  matrix(0, ncx, nobs*(nobs-1)/2)
   vmc <- rep(0, npairc)
@@ -231,12 +228,16 @@ Gr_cohort2 <- function(year, age, y, x, betam0, model = "year", weights,
   
   BICc <- log(sum(ym - Xm %*% betac - Zcm %*% etanew)^2/nobs) + log(log(nobs*ncx))*log(nobs)/nobs*(ngest * ncx + ngestc)
   
-  resi <- log(sum(ym - Xm %*% betac- Zcm %*% etanew)^2/nobs)
+  BICc2 <- log(sum(y - X%*% betac - Zc%*% etanew)^2/n0) + log(log(nobs*ncx + ncoh))*log(n0)/n0*(ngest * ncx + ngestc)
+  
+  BIClog <- log(sum(y - X%*% betac - Zc%*% etanew)^2/n0) + log(nobs*ncx + ncoh)*log(n0)/n0*(ngest * ncx + ngestc)
+  
+  resi <- sum(y - X%*% betac - Zc%*% etanew)^2/n0
   
   outls <- list(betaest = betaest, etaest = etanew, betam = betam, alpest = alpest,
                 group = groupest, groupc = groupestc,
                 deltam = deltam,  alpm = alpm, 
-                BIC = BICvalue, BIC2 = BICvalue2,BICc = BICc,resi = resi,
+                BIC = BICvalue, BIC2 = BICvalue2,BICc = BICc, BICc2 = BICc2, BIClog = BIClog, resi = resi,
                 rm = rm, sm = sm, tolpri = tolpri, toldual = toldual,
                 flag = flag, niteration = m)
   

@@ -119,8 +119,8 @@ ordervec <- wmat[lower.tri(wmat)]
 betam02 <- cal_initialrx(indexy = age2,y = y2,x = x2) # from Spgr package 
 
 
-lam1 <- seq(0.005,0.05,by = 0.0025)
-lam2 <- seq(0.001,0.001,by = 0.001)
+lam1 <- seq(0.01,0.4,by = 0.01)
+lam2 <- seq(0.01,0.1,by = 0.02)
 alp <- c(0.25,0.5,0.75,1,1.25,1.5)
 
 bic2 <- rep(0, length(alp))
@@ -133,7 +133,7 @@ for(k in 1:length(alp))
 {
   weightsk <- exp(alp[k]*(1-ordervec))
  
-  bick2 <- rep(0, length(lam2))
+  bic2k <- rep(0, length(lam2))
   
   beta_arrayk2 <- array(0, dim = c(nage2,ncol(x2),length(lam2)))
   groupmatk2 <- matrix(0, nage2, length(lam2))
@@ -143,39 +143,35 @@ for(k in 1:length(alp))
   
   for(j2 in 1:length(lam2))
   {
-    betam2 <- betam02
-    
     bic2j <- rep(0, length(lam1))
-    
+
     beta_arrayj2 <- array(0, dim = c(nage2,ncol(x2),length(lam1)))
     groupmatj2 <- matrix(0, nage2, length(lam1))
     
     etamatj2 <- matrix(0, ncoh, length(lam1))
     groupetaj2  <- matrix(0, ncoh, length(lam1))
     
+    resi2 <- rep(0, length(lam1))
     for(j1 in 1:length(lam1))
     {
-      resj <- Gr_cohort2(year = year2,age = age2,y = dat$PropObese,x = x2,
-                         betam0 = betam2,model = "age",weights = weightsk,
-                         lam1 = lam1[j1],lam2 = lam2[j2])
+      resj <- Gr_cohort2(year = year2,age = age2,y = scale(dat$PropObese),x = x2,
+                         betam0 = betam02,model = "age",weights = weightsk,
+                         lam1 = lam1[j1],lam2 = lam2[j2],maxiter = 2000)
       
-     # resj <- Gr_cohort2(year = year2,age = age2,y = dat$PropObese,x = x2,
-      #                   betam0 = betam2,model = "age",weights = weightsk,
-      #                   lam1 = lam1[j1],lam2 = lam2[])
-      
-      
-      betam2 <- resj$betaest
-      
+      resi2[j1] <- resj$resi
+  
       bic2j[j1] <- resj$BIC2
+
       beta_arrayj2[,,j1] <- resj$betaest
       groupmatj2[,j1] <- resj$group
       etamatj2[,j1] <- resj$etaest
       groupetaj2[,j1] <- resj$groupc
     }
     
+    
     indexmin <- which.min(bic2j)
     
-    bick2[j2] <- bic2k[indexmin]
+    bic2k[j2] <- bic2j[indexmin]
     
     beta_arrayk2[,,j2] <- beta_arrayj2[,,indexmin]
     groupmatk2[,j2] <- groupmatj2[,indexmin]
