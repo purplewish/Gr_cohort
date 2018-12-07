@@ -1,4 +1,5 @@
 ####### Find some subgroups for obesity data by Xin Wang####
+# chohort is considered but not clusted ####
 
 library(Spgr)
 

@@ -105,7 +105,7 @@ year2 <- dat2$IYEAR
 age2 <- dat2$AGE
 nage2 <- length(unique(age2))
 y2 <- dat2$PropObese 
-x2 <- cbind(1, scale(dat2$IYEAR),scale(dat2$IYEAR^2))
+x2 <- cbind(1, scale(dat2$IYEAR),scale((dat2$IYEAR - mean(dat2$IYEAR))^2))
 ncoh <- nage2 + length(unique(year2)) - 1
 
 # weights for age is defined based on the age difference 
@@ -116,11 +116,11 @@ for(i in 1:(nage2-1))
 wmat <- wmat + t(wmat)
 ordervec <- wmat[lower.tri(wmat)]
 
-betam02 <- cal_initialrx(indexy = age2,y = y2,x = x2) # from Spgr package 
+betam02 <- cal_initialrx(indexy = age2,y = scale(y2),x = x2) # from Spgr package 
 
 
-lam1 <- seq(0.01,0.4,by = 0.01)
-lam2 <- seq(0.01,0.1,by = 0.02)
+lam1 <- seq(0.05,0.4,by = 0.025)
+lam2 <- seq(0.01,0.04,by = 0.0025)
 alp <- c(0.25,0.5,0.75,1,1.25,1.5)
 
 bic2 <- rep(0, length(alp))
@@ -131,6 +131,7 @@ etamat2 <- groupeta2 <- matrix(0, ncoh, length(alp))
 
 for(k in 1:length(alp))
 {
+  t1 <- Sys.time()
   weightsk <- exp(alp[k]*(1-ordervec))
  
   bic2k <- rep(0, length(lam2))
@@ -154,7 +155,7 @@ for(k in 1:length(alp))
     resi2 <- rep(0, length(lam1))
     for(j1 in 1:length(lam1))
     {
-      resj <- Gr_cohort2(year = year2,age = age2,y = scale(dat$PropObese),x = x2,
+      resj <- Gr_cohort2(year = year2,age = age2,y = scale(y2),x = x2,
                          betam0 = betam02,model = "age",weights = weightsk,
                          lam1 = lam1[j1],lam2 = lam2[j2],maxiter = 2000)
       
@@ -168,7 +169,6 @@ for(k in 1:length(alp))
       groupetaj2[,j1] <- resj$groupc
     }
     
-    
     indexmin <- which.min(bic2j)
     
     bic2k[j2] <- bic2j[indexmin]
@@ -181,8 +181,9 @@ for(k in 1:length(alp))
   }
   
 
-  indj <- which.min(bick2)
-  bic2[k] <- bick2[indj]
+  t2 <- Sys.time()
+  indj <- which.min(bic2k)
+  bic2[k] <- bic2k[indj]
   
   beta_array2[,,k] <- beta_arrayk2[,,indj]
   groupmat2[,k] <- groupmatk2[,indj]
@@ -194,3 +195,6 @@ for(k in 1:length(alp))
 
 
 res_c2 <-  refit_cohort2(year = year2, age = age2,y = dat$PropObese, x = x2,group.individual = groupmat2[,5],group.cohort = groupeta2[,5],model = "age")
+
+
+

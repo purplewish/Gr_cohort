@@ -1,5 +1,6 @@
 ####### Find some subgroups for both regression coefficients#######
-#######and cohort effect for obesity data by Xin Wang ######
+#######and cohort effect for obesity data by Xin Wang ###### 
+##### clustering regression coefficients and cohort effect together ####
 
 library(Spgr)
 
@@ -243,6 +244,8 @@ Gr_cohort2 <- function(year, age, y, x, betam0, model = "year", weights,
   
   return(outls)
 }
+
+
 
 
 
