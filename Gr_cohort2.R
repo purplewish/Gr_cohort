@@ -192,12 +192,12 @@ Gr_cohort2 <- function(year, age, y, x, betam0, model = "year", weights,
     vh <- vh + nu * Heta
     
     # convergence
-    rm <- sqrt(sum(Abd^2) + Heta^2)
+    rm <- sqrt(sum(Abd^2) + sum(Dea^2) + Heta^2)
     sm <- nu*sqrt(sum(((deltam - deltam.old)%*%D)^2) + sum((t(Dc)%*%(alpm - alpm.old))^2))
     
     tolpri <- tolabs*sqrt(npair*ncx + npairc + 1) + 
       tolrel*max(sqrt(sum(betadiff^2) + Heta^2 + sum(etadiff^2)),sqrt(sum(deltam^2) + sum(alpm^2)))
-    toldual <- tolabs*sqrt(nobs*ncx + ncoh) + tolrel* sqrt(sum((vm %*% D)^2) + vh^2*ncoh + sum((t(Dc)%*% vmc)^2))
+    toldual <- tolabs*sqrt(nobs*ncx + ncoh) + tolrel* sqrt(sum((vm %*% D)^2) + sum((t(Dc)%*% vmc + vch)^2))
     
     deltam.old <- deltam
     alpm.old <- alpm
