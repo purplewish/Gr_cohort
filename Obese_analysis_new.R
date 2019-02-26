@@ -1,18 +1,18 @@
-####### two steps ####
 library(Spgr)
 library(plyr)
 library(dplyr)
 library(ggplot2)
-setwd("Research/Obesity/")
-source("Gr_cohort/Gr_cohort.R")
+#setwd("/Users/wangx172/Research/Obesity/")
+setwd("/Users/wangx172/Dropbox/Tanja&XinW/Rfiles/") 
 source("Gr_cohort/refit_cohort.R")
-source("Gr_cohort/Gr_cohort2.R")
-dat <- read.csv("/Users/wangx172/Dropbox/Tanja&XinW/Rfiles/CBD-O/FullObeseYear1.csv")
 source("Gr_cohort/Gr_cohort3.R")
+
+dat <- read.csv("/Users/wangx172/Dropbox/Tanja&XinW/Newdata/AggObese1990_2017.csv")
 
 
 ########### first step for cohort ###
 dat2 <- arrange(dat, AGE, IYEAR)
+dat2 <- filter(dat2, AGE !=80)
 year2 <- dat2$IYEAR
 age2 <- dat2$AGE
 nage2 <- length(unique(age2))
@@ -20,7 +20,9 @@ y2 <- dat2$PropObese
 x2 <- cbind(1, scale(dat2$IYEAR),scale((dat2$IYEAR - mean(dat2$IYEAR))^2))
 ncoh <- nage2 + length(unique(year2)) - 1
 
-lamc <- seq(0.01,0.04,length = 30)
+
+
+lamc <- seq(0.01,0.04,length = 20)
 bic_s11 <- bic_s12 <- rep(0,length(lamc))
 
 for(j in 1:length(lamc))
@@ -33,13 +35,11 @@ for(j in 1:length(lamc))
 
 which.min(bic_s11)
 res_s1 <- Gr_cohort_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,
-                         model = "age", group.individual = 1:nage2,lam2 = lamc[9],maxiter = 2000)
+                         model = "age", group.individual = 1:nage2,lam2 = lamc[2],maxiter = 2000)
 
 groupc <- res_s1$groupc
 
 
-
-### second step for regression coefficients ##
 lam2c <- seq(0.02, 0.4, by = 0.02)
 betam02 <- cal_initialrx(indexy = age2,y = scale(y2),x = x2)
 
@@ -69,7 +69,7 @@ for(k in 1:length(alp))
   {
     res_s2j <- Gr_coef_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,betam0 = betam02j,
                             ws = weightsk,
-                            model = "age", group.cohort = groupc,lam = lam2c[j],maxiter = 2000)
+                            model = "age", group.cohort = 1:ncoh,lam = lam2c[j],maxiter = 2000)
     betam02j <- res_s2j$betaest
     bic_s21[j] <-res_s2j$BIC2
     bic_s22[j] <- res_s2j$BICc2
@@ -88,6 +88,7 @@ ind2 <- which.min(bic_s21a)
 group_coef <- group_s2a[,ind2]
 
 
+#### refit 
 uyear <- unique(dat2$IYEAR)
 xm <- dat2$IYEAR - mean(uyear)
 sigmax <- sum((uyear - mean(uyear))^2)/length(uyear)
@@ -95,8 +96,6 @@ sigmax <- sum((uyear - mean(uyear))^2)/length(uyear)
 x0 <- cbind(1, xm, xm^2 - sigmax)
 
 res_fit <- refit_cohort2(year = year2,age = age2,y = dat2$PropObese,x = x0,group.individual = group_coef,group.cohort = groupc,model = "age")
-
-save(group_coef, groupc, res_fit, file = "result_v2.RData")
 
 
 preddat <- dat2
@@ -115,4 +114,20 @@ age_df <- data.frame(age = unique(age2),group = group_coef)
 plot(age_df)
 
 
-load("result_v2.RData")
+####### diagnois plot #####
+library(ggplot2)
+library(dplyr)
+dat3 = dat2
+dat3$group = findInterval(dat3$AGE,vec = c(0,30,40,50,60,70,80),rightmost.closed = TRUE)
+ggplot(data = filter(dat3,AGE >=23),aes(x = IYEAR, y = PropObese, group = AGE, color = AGE)) + geom_line() + facet_wrap(~group)
+
+
+# dat0 = merge(dat, dat2, by = c("IYEAR","AGE"),all = TRUE)
+# 
+# dat4 = dat
+# dat4$group = findInterval(dat4$AGE,vec = c(0,30,40,50,60,70,80),rightmost.closed = TRUE)
+# ggplot(data = dat4,aes(x = IYEAR, y = PropObese, group = AGE, color = AGE)) + geom_line() + facet_wrap(~group)
+
+plot(dat3$PropObese[dat3$AGE==80]
+,dat4$PropObese[dat4$AGE==80])
+abline(0,1)
