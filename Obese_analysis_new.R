@@ -97,22 +97,60 @@ x0 <- cbind(1, xm, xm^2 - sigmax)
 
 res_fit <- refit_cohort2(year = year2,age = age2,y = dat2$PropObese,x = x0,group.individual = group_coef,group.cohort = groupc,model = "age")
 
+save(group_coef, groupc, res_fit, file = "result_new.RData")
+
+load("result_new.RData")
+
+dfc <- data.frame(cohort = sort(unique((factor(year2 - age2)))), gc = groupc, ID = as.factor(groupc))
+## cohort figure
+pdf("doc/cohort_group.pdf",height = 6,width = 8) # should be changed based on your local drive
+ggplot(dfc,aes(x=cohort, y=gc, group=gc, shape= ID)) + geom_point() + 
+  scale_shape_manual(values=1:nlevels(cc$ID)) +
+  labs(title = "", x="cohort", y="subgroups") +
+  geom_point(size=2)+ theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_discrete("cohort", labels = seq(1911,1999,by = 5), breaks = seq(1911,1999,by = 5))+
+  theme(axis.text.y = element_text(angle = 90, vjust = 0.5)) + 
+  scale_y_continuous("subgroups", labels = 1:7, breaks = 1:7)
+dev.off()
+
+## age figure 
+dfa <- data.frame(age = unique(age2), ga = group_coef, ID = as.factor(group_coef))
+## cohort figure
+pdf("doc/age_group.pdf",height = 6,width = 8) # should be changed based on your local drive
+ggplot(dfa,aes(x=age, y=ga, group=ga, shape= ID)) + geom_point() + 
+  scale_shape_manual(values=1:nlevels(cc$ID)) +
+  labs(title = "", x="ages", y="subgroups") +
+  geom_point(size=2)+ theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  scale_x_continuous("ages", labels = as.character(ages), breaks = ages)+
+  theme(axis.text.y = element_text(angle = 90, vjust = 0.5)) +
+  scale_y_continuous("subgroups", labels = as.character(1:7), breaks = 1:7)
+dev.off()
+
 
 preddat <- dat2
 preddat$est <- res_fit$estimates
 preddat$group <- as.factor(rep(group_coef, each = length(unique(dat2$IYEAR))))
 preddat$curve <- res_fit$curve
 
+pdf("doc/group_curves.pdf",height = 6,width = 8) 
+ggplot(data = preddat) + 
+  geom_point(aes(x = IYEAR, y = PropObese), alpha = 0.5) + 
+  geom_line( aes(x = IYEAR, y = curve, linetype = group), size = 0.8) +
+  ylab("obesity prevalence")+
+  theme_bw()  +
+  theme(legend.key.width=unit(1,"cm")) + 
+  scale_x_continuous("year", labels = seq(1990,2017,by = 5), breaks = seq(1990,2017,by = 5))
+dev.off()
 
 ggplot(data = preddat) + 
   geom_point(aes(x = IYEAR, y = PropObese), alpha = 0.5) + 
-  geom_line( aes(x = IYEAR, y = curve, color = group)) +
-  #geom_line(aes(x = IYEAR, y = est, group = group, color = group)) +
-  theme_bw() 
-
-age_df <- data.frame(age = unique(age2),group = group_coef)
-plot(age_df)
-
+  geom_line( aes(x = IYEAR, y = curve, linetype = group)) +
+  theme_bw()  +
+  theme()
+  facet_wrap(~group)
+  scale_x_continuous("year", labels = seq(1990,2017,by = 5), breaks = seq(1990,2017,by = 5))
 
 ####### diagnois plot #####
 library(ggplot2)
