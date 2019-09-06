@@ -22,7 +22,7 @@ ncoh <- nage2 + length(unique(year2)) - 1
 
 
 
-lamc <- seq(0.01,0.04,length = 20)
+lamc <- seq(0.001,0.02,by = 0.00025)
 bic_s11 <- bic_s12 <- rep(0,length(lamc))
 
 for(j in 1:length(lamc))
@@ -35,7 +35,11 @@ for(j in 1:length(lamc))
 
 which.min(bic_s11)
 res_s1 <- Gr_cohort_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,
-                         model = "age", group.individual = 1:nage2,lam2 = lamc[2],maxiter = 2000)
+                         model = "age", group.individual = 1:nage2,lam2 = lamc[which.min(bic_s11)],maxiter = 2000)
+
+res_s1 <- Gr_cohort_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,
+                         model = "age", group.individual = group_coef,lam2 = lamc[6],maxiter = 2000)
+
 
 groupc <- res_s1$groupc
 
@@ -69,7 +73,7 @@ for(k in 1:length(alp))
   {
     res_s2j <- Gr_coef_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,betam0 = betam02j,
                             ws = weightsk,
-                            model = "age", group.cohort = 1:ncoh,lam = lam2c[j],maxiter = 2000)
+                            model = "age", group.cohort = groupc,lam = lam2c[j],maxiter = 2000)
     betam02j <- res_s2j$betaest
     bic_s21[j] <-res_s2j$BIC2
     bic_s22[j] <- res_s2j$BICc2
@@ -87,6 +91,30 @@ for(k in 1:length(alp))
 ind2 <- which.min(bic_s21a)
 group_coef <- group_s2a[,ind2]
 
+
+lam2c <- exp(seq(-2, 6, by = 0.05))
+bic_s21 <- rep(0, length(lam2c))
+beta_array_s2 <- array(0, dim = c(nage2,3,length(lam2c)))
+group_s2 <- matrix(0, nage2, length(lam2c))
+
+weightsk <- exp(alp[5]*(1-ordervec))
+betam02j <- betam02
+
+for(j in 1:length(lam2c))
+{
+  res_s2j <- Gr_coef_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,betam0 = betam02,
+                          ws = weightsk,
+                          model = "age", group.cohort = groupc,lam = lam2c[j],maxiter = 2000)
+  betam02j <- res_s2j$betaest
+  bic_s21[j] <-res_s2j$BIC2
+  beta_array_s2[,,j] <- res_s2j$betaest
+  group_s2[,j] <- res_s2j$group
+}
+
+
+res_s2 <- Gr_coef_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,betam0 = betam02,
+                        ws = weightsk,
+                        model = "age", group.cohort = groupc,lam = 100,maxiter = 2000)
 
 #### refit 
 uyear <- unique(dat2$IYEAR)
