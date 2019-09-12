@@ -154,13 +154,13 @@ Gr_cohort_only <- function(year, age, y, x, model = "year",group.individual,
   
   
   ## group information for cohort 
-  groupestc <- getgroup(deltam = matrix(alpm,nrow = 1), n = ncoh,tol = 1e-8)
+  groupestc <- getgroup(deltam = matrix(alpm,nrow = 1), n = ncoh,tol = 1e-6)
   ngestc <- length(unique(groupestc))
 
   
   BICvalue2 <- log(sum(y - X%*% betanew - Zc%*% etanew)^2/n0) + log(n0)/n0*(ng*ncx + ngestc )
   
-  BICc2 <- log(sum(y - X%*% betanew - Zc%*% etanew)^2/n0)  + log(log(ng*ncx + ncoh))*log(n0)/n0*(ng*ncx + ngestc)
+  BICc2 <- log(sum(y - X%*% betanew - Zc%*% etanew)^2/n0)  + log(log(nobs*ncx + ncoh))*log(n0)/n0*(ng*ncx + ngestc)
   
   outls <- list(etaest = etanew, betam = betam,  groupc = groupestc, alpm = alpm, BIC2 = BICvalue2, BICc2 = BICc2,
                 rm = rm, sm = sm, tolpri = tolpri, toldual = toldual,
@@ -304,7 +304,7 @@ Gr_coef_only <- function(year, age, y, x, model = "year", group.cohort, betam0,
   
   if(m == maxiter) {flag <- 1}
   
-  groupest <- getgroup(deltam = deltam,n = nobs) 
+  groupest <- getgroup(deltam = deltam,n = nobs, tol = 1e-2) 
   # getgroup is a function Spgr to find the group information based on estimated delta
   ngest <- length(unique(groupest))
   
@@ -319,7 +319,7 @@ Gr_coef_only <- function(year, age, y, x, model = "year", group.cohort, betam0,
 
   BICvalue2 <- log(sum(y - X%*%betac - Zc%*% etanew)^2/n0) + log(n0)/n0*(ngest*ncx + ngc)
   
-  BICc2 <- log(sum(y - X%*%betac- Zc%*% etanew)^2/n0)  + 0.2*log(log(nobs*ncx + ngc))*log(n0)/n0*(ngest*ncx + ngc)
+  BICc2 <- log(sum(y - X%*%betac- Zc%*% etanew)^2/n0)  + log(log(nobs*ncx + ngc))*log(n0)/n0*(ngest*ncx + ngc)
   
   outls <- list(betaest = betaest, etaest = etanew, betam = betam, alpest = alpest,
                 group = groupest, deltam = deltam, BIC2 = BICvalue2, BICc2 = BICc2,
