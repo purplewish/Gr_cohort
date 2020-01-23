@@ -20,7 +20,7 @@ nage2 <- length(unique(age2))
 y2 <- dat2$PropObese 
 x2 <- cbind(1, scale(dat2$IYEAR),scale((dat2$IYEAR - mean(dat2$IYEAR))^2))
 ncoh <- nage2 + length(unique(year2)) - 1
-
+ages = unique(dat2$AGE)
 
 ########### first step for cohort ###
 lamc <- seq(0.001,0.03,by = 0.0005)
@@ -89,7 +89,9 @@ group_coef = group_s2[,10,4]
 cbind(ages, group_coef)
 
 
-betals[[4]][,1,]
+betals[[4]][,,10]
+
+
 
 plot(lam2c, betals[[4]][1,1,], type ="l",ylim = c(-2,1))
 for(i in 2:62)
@@ -112,15 +114,21 @@ bic_s21[ngroup4==4,4]
 
 c(min(bic_s21[ngroup4==4,4]),min(bic_s21[ngroup4==5,4]),min(bic_s21[ngroup4==6,4]),min(bic_s21[ngroup4==7,4]))
 
-lam2c[bic_s21[,4] == min(bic_s21[ngroup4==4,4])]
-lam2c[bic_s21[,4] == min(bic_s21[ngroup4==5,4])]
-lam2c[bic_s21[,4] == min(bic_s21[ngroup4==6,4])]
-lam2c[bic_s21[,4] == min(bic_s21[ngroup4==7,4])]
+lam2c4 = lam2c[bic_s21[,4] == min(bic_s21[ngroup4==4,4])]
+lam2c5 = lam2c[bic_s21[,4] == min(bic_s21[ngroup4==5,4])]
+lam2c6 = lam2c[bic_s21[,4] == min(bic_s21[ngroup4==6,4])]
+lam2c7 = lam2c[bic_s21[,4] == min(bic_s21[ngroup4==7,4])]
+c(lam2c4, lam2c5, lam2c6, lam2c7)
+
+### coefficients
+betaest4 = unique(betals[[4]][,,lam2c == lam2c4])
+betaest5 = unique(betals[[4]][,,lam2c == lam2c5])
+betaest6 = unique(betals[[4]][,,lam2c == lam2c6])
+betaest7 = unique(betals[[4]][,,lam2c == lam2c7])
+
 
 
 summary(bic_s21[,4])
-
-
 group_s2[,ngroup4==6,4]
 
 group_coef4 = group_s2[,ngroup4==4,4][,which.min(bic_s21[ngroup4==4,4])]
@@ -138,7 +146,11 @@ res_fit <- refit_cohort2(year = year2,age = age2,y = dat2$PropObese,x = x0,group
 
 res_fit2 <- refit_cohort2(year = year2,age = age2,y = scale(y2),x = x2,group.individual = group_coef,group.cohort = groupc,model = "age")
 
+res_fitg4 <- refit_cohort2(year = year2,age = age2,y = scale(y2),x = x2,group.individual = group_coef4,group.cohort = groupc,model = "age")
 
+
+save(betaest4, betaest5, betaest6, betaest7, res_fitg4, group_coef,
+     group_coef4, group_coef5, group_coef7, file = "betaest4567.RData")
 
 dfc <- data.frame(cohort = sort(unique((factor(year2 - age2)))), gc = groupc, ID = as.factor(groupc))
 ## cohort figure
