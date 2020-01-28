@@ -22,9 +22,12 @@ x2 <- cbind(1, scale(dat2$IYEAR),scale((dat2$IYEAR - mean(dat2$IYEAR))^2))
 ncoh <- nage2 + length(unique(year2)) - 1
 ages = unique(dat2$AGE)
 
+
 ########### first step for cohort ###
 lamc <- seq(0.001,0.03,by = 0.0005)
 bic_s11 <- bic_s12 <- rep(0,length(lamc))
+
+groupcmat = matrix(0, ncoh, length(lamc))
 
 for(j in 1:length(lamc))
 {
@@ -32,6 +35,7 @@ for(j in 1:length(lamc))
                          model = "age", group.individual = 1:nage2,lam2 = lamc[j],maxiter = 2000)
   bic_s11[j] <- resj$BIC2
   bic_s12[j] <- resj$BICc2
+  groupcmat[,j] = resj$groupc
 }
 
 which.min(bic_s11)
@@ -39,6 +43,9 @@ res_s1 <- Gr_cohort_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,
                          model = "age", group.individual = 1:nage2,lam2 = lamc[which.min(bic_s11)],maxiter = 2000)
 
 groupc <- res_s1$groupc
+
+
+sort(unique(apply(groupcmat,2, function(x){length(unique(x))})))
 
 ######## step 2 #######
 
@@ -86,12 +93,22 @@ inds21 = which(bic_s21==min(bic_s21),arr.ind = TRUE)
 group_coef = group_s2[,10,4]
 
 
+sort(unique(apply(group_s2[,,4],2, function(x){length(unique(x))})))
+
+
 cbind(ages, group_coef)
 
 
 betals[[4]][,,10]
 
 
+weightsk <- exp(alp[4]*(1-ordervec))
+res_s2 <- Gr_coef_only(year = dat2$IYEAR,age = age2, y = scale(y2),x = x2,betam0 = betam02,
+                        ws = weightsk,model = "age", 
+                        group.cohort = groupc,lam = lam2c[10],maxiter = 2000)
+
+
+res_s2$betaest
 
 plot(lam2c, betals[[4]][1,1,], type ="l",ylim = c(-2,1))
 for(i in 2:62)
@@ -219,8 +236,20 @@ ggplot(data = preddat) +
 dev.off()
 
 
-save(bic_s11, groupc, bic_s21, group_s2, res_fit, file = "result_newv2.RData")
+save(bic_s11, groupcmat, groupc, bic_s21, betals, group_s2, res_s2, res_fit, file = "result_newv2.RData")
 
 
 
+
+abs(unique(res_s2$betaest)  - res_fit2$betaest)
+
+
+plot(c(unique(res_s2$betaest)), c(res_fit2$betaest))
+
+
+library(xtable)
+xtable(unique(res_s2$betaest),digits = 4)
+xtable(unique(res_fit2$betaest),digits = 4)
+
+xtable(cbind(unique(res_s2$betaest), res_fit2$betaest),digits = 4)
 

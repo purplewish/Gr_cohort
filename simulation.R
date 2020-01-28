@@ -114,6 +114,7 @@ for(mm in 1:100)
   
 }
 
+
 par(mfrow = c(4,3))
 for(i in 1:4)
 {
