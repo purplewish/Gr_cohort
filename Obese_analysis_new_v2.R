@@ -92,9 +92,14 @@ inds21 = which(bic_s21==min(bic_s21),arr.ind = TRUE)
 
 group_coef = group_s2[,10,4]
 
-
+sort(unique(apply(group_s2[,,1],2, function(x){length(unique(x))})))
+sort(unique(apply(group_s2[,,2],2, function(x){length(unique(x))})))
+sort(unique(apply(group_s2[,,3],2, function(x){length(unique(x))})))
 sort(unique(apply(group_s2[,,4],2, function(x){length(unique(x))})))
+sort(unique(apply(group_s2[,,5],2, function(x){length(unique(x))})))
+sort(unique(apply(group_s2[,,6],2, function(x){length(unique(x))})))
 
+sort(unique(c(apply(group_s2,2:3, function(x){length(unique(x))}))))
 
 cbind(ages, group_coef)
 
@@ -238,6 +243,7 @@ dev.off()
 
 save(bic_s11, groupcmat, groupc, bic_s21, betals, group_s2, res_s2, res_fit, file = "result_newv2.RData")
 
+load("result_newv2.RData")
 
 
 
@@ -251,5 +257,7 @@ library(xtable)
 xtable(unique(res_s2$betaest),digits = 4)
 xtable(unique(res_fit2$betaest),digits = 4)
 
-xtable(cbind(unique(res_s2$betaest), res_fit2$betaest),digits = 4)
+xtable(cbind(unique(res_s2$betaest), res_fit2$betaest, 
+             abs(unique(res_s2$betaest) - res_fit2$betaest)),
+       digits = 4)
 

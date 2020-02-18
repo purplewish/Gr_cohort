@@ -1,6 +1,7 @@
 #### a small simulation to see poential computational bias ##### 
 ### four groups, simulated from the existing model and data.... 
 ## ignore cohort effect ### sig2 = 0.08336409###
+library(Spgr)
 dat <- read.csv("/Users/wangx172/Dropbox/Tanja&XinW/Newdata/AggObese1990_2017.csv")
 load("betaest4567.RData")
 source("Gr_cohort/refit_cohort.R")
@@ -20,6 +21,8 @@ betaest40g = betaest40[group_coef4,]
 
 sig2est = 0.083
 
+
+est_array4 = est_array4r = array(0, dim = c(4,3, 100))
 
 bias_array4 = bias_array4r = array(0, dim = c(4,3,100))
 bias_arrayall4 = bias_arrayall4r = array(0, dim = c(nage2, 3, 100))
@@ -90,30 +93,42 @@ for(mm in 1:100)
   betaestr = matrix(res_rfit4$betaest, ncol = 3, byrow = TRUE)
   
   
+  #### estimates ####
+  
+  est_array4[,,mm] = betaest
+  est_array4r[,,mm] = betaestr
+  
   #### bias ###
 
   
-  bias_array4[,,mm] = abs(betaest40 - betaestr)
-  bias_array4r[,,mm] = abs(betaest40 - betaest)
+  bias_array4[,,mm] = abs(betaest40 - betaest)
+  bias_array4r[,,mm] = abs(betaest40 - betaestr)
   
   
-  bias_arrayall4[,,mm] = abs(betaest40g - betaestr[groupest,])
-  bias_arrayall4r[,,mm] = abs(betaest40g - betaest[groupest,])
+  bias_arrayall4[,,mm] = abs(betaest40g - betaest[groupest,])
+  bias_arrayall4r[,,mm] = abs(betaest40g - betaestr[groupest,])
   
   ### relative bias ###
   
   
-  relbias_array4[,,mm]= abs(betaest40 - betaestr)/abs(betaest40)
-  relbias_array4r[,,mm] = abs(betaest40 - betaest)/abs(betaest40)
+  relbias_array4[,,mm]= abs(betaest40 - betaest)/abs(betaest40)
+  relbias_array4r[,,mm] = abs(betaest40 - betaestr)/abs(betaest40)
   
   
-  relbias_arrayall4[,,mm] =  abs(betaest40g - betaestr[groupest,])/abs(betaest40g)
-  relbias_arrayall4r[,,mm] = abs(betaest40g - betaest[groupest,])/abs(betaest40g)
+  relbias_arrayall4[,,mm] =  abs(betaest40g - betaest[groupest,])/abs(betaest40g)
+  relbias_arrayall4r[,,mm] = abs(betaest40g - betaestr[groupest,])/abs(betaest40g)
   
   print(mm)
   
 }
 
+
+save(bias_array4,bias_array4r,bias_arrayall4,bias_arrayall4r,
+     relbias_array4,relbias_array4r,relbias_arrayall4, relbias_arrayall4r, 
+     est_array4, est_array4r,file = "sim_bias4.RData")
+
+abs(apply(est_array4,c(1,2),mean) - betaest40)/abs(betaest40) -
+  abs(apply(est_array4r,c(1,2),mean) - betaest40)
 
 par(mfrow = c(4,3))
 for(i in 1:4)

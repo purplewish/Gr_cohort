@@ -15,6 +15,8 @@ nsim = 200
 bias_array2 = bias_array2r = array(0, dim = c(2,2,nsim))
 bias_arrayall2 = bias_arrayall2r = array(0, dim = c(n, 2, nsim))
 
+est_array = est_arrayr = array(0, dim = c(2,2,nsim))
+
 relbias_array2 = relbias_array2r = array(0, dim = c(2,2,nsim))
 relbias_arrayall2 = relbias_arrayall2r = array(0, dim = c(n, 2, nsim))
 
@@ -82,22 +84,28 @@ for(mm in 1:nsim)
   
   if(length(unique(groupest))==2)
   {
-    bias_array2[,,mm] = abs(beta20 - betaestr)
-    bias_array2r[,,mm] = abs(beta20 - betaest)
+    
+    ### estimate 
+    est_array[,,mm] = betaest
+    est_arrayr[,,mm] = betaestr
+    
+    #### absolute bias 
+    bias_array2[,,mm] = abs(beta20 - betaest)
+    bias_array2r[,,mm] = abs(beta20 - betaestr)
     
     
-    bias_arrayall2[,,mm] = abs(beta20g - betaestr[groupest,])
-    bias_arrayall2r[,,mm] = abs(beta20g - betaest[groupest,])
+    bias_arrayall2[,,mm] = abs(beta20g - betaest[groupest,])
+    bias_arrayall2r[,,mm] = abs(beta20g - betaestr[groupest,])
     
     ### relative bias ###
     
     
-    relbias_array2[,,mm]= abs(beta20 - betaestr)/abs(beta20)
-    relbias_array2r[,,mm] = abs(beta20 - betaest)/abs(beta20)
+    relbias_array2[,,mm]= abs(beta20 - betaest)/abs(beta20)
+    relbias_array2r[,,mm] = abs(beta20 - betaestr)/abs(beta20)
     
     
-    relbias_arrayall2[,,mm] =  abs(beta20g - betaestr[groupest,])/abs(beta20g)
-    relbias_arrayall2r[,,mm] = abs(beta20g - betaest[groupest,])/abs(beta20g)
+    relbias_arrayall2[,,mm] =  abs(beta20g - betaest[groupest,])/abs(beta20g)
+    relbias_arrayall2r[,,mm] = abs(beta20g - betaestr[groupest,])/abs(beta20g)
     
   }
   
@@ -106,12 +114,21 @@ for(mm in 1:nsim)
   
 }
 
-save(bias_array2,bias_array2r,bias_arrayall2,bias_arrayall2r,
+save(est_array, est_arrayr, bias_array2,bias_array2r,bias_arrayall2,bias_arrayall2r,
      relbias_array2,relbias_array2r,relbias_arrayall2, relbias_arrayall2r, file = "sim_bias.RData")
 
 
 load("sim_bias.RData")
 
+
+biassum = apply(bias_array2,3,sum)
+## remove uncorrected number of groups 
+indexuse = (1:200)[biassum!=0][1:100]
+
+library(xtable)
+tab = cbind(abs(apply(est_array[,,indexuse],c(1,2),mean) - beta20),
+abs(apply(est_arrayr[,,indexuse],c(1,2),mean) - beta20))
+print(xtable(tab, digits = 4))
 
 boxplot(apply(bias_array2,3,sum),apply(bias_array2r,3,sum))
 
